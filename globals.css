@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/* ------------------- Premium Dark Theme System ------------------- */
+:root {
+  --bg: #06040b;
+  --card: rgba(255, 255, 255, 0.06);
+  --cardBorder: rgba(255, 255, 255, 0.12);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.62);
+  --shadow: 0 30px 120px rgba(0, 0, 0, 0.7);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter,
+    "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  overflow-x: hidden;
+}
+
+/* Prevent bottom nav blocking content */
+main {
+  padding-bottom: 120px;
+}
+
+/* Premium selection */
+::selection {
+  background: rgba(236, 72, 153, 0.35);
+  color: white;
+}
+
+/* Smooth focus */
+:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.25);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+/* Premium scroll bar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 100px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Reduce tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
