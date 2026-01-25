@@ -25,9 +25,12 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>([]);
-  const [todayOutfit, setTodayOutfit] = useState<TodayOutfitPayload | null>(null);
+  const [todayOutfit, setTodayOutfit] =
+    useState<TodayOutfitPayload | null>(null);
 
-  // ✅ prevent SSR crash
+  const [generated, setGenerated] = useState(false);
+
+  // ✅ HARD CLIENT GATE
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -38,22 +41,28 @@ export default function DashboardPage() {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return router.push("/auth");
 
-      const setupDone = localStorage.getItem("setup_done") === "1";
-      if (!setupDone) return router.push("/setup");
+      if (localStorage.getItem("setup_done") !== "1") {
+        router.push("/setup");
+        return;
+      }
 
       setUser(u);
 
       try {
         setWardrobe(JSON.parse(localStorage.getItem("wardrobe_items") || "[]"));
         setTodayOutfit(JSON.parse(localStorage.getItem("today_outfit") || "null"));
+        setGenerated(!!localStorage.getItem("outfit_history"));
       } catch {
         setWardrobe([]);
         setTodayOutfit(null);
+        setGenerated(false);
       }
     });
 
     return () => unsub();
   }, [mounted, router]);
+
+  if (!mounted) return null;
 
   const stats = useMemo(() => {
     return {
@@ -62,18 +71,10 @@ export default function DashboardPage() {
     };
   }, [wardrobe]);
 
-  if (!mounted) return null;
-
-  const onboarding = {
-    uploaded: stats.total > 0,
-    generated: !!localStorage.getItem("outfit_history"),
-    picked: !!todayOutfit,
-  };
-
   const completed =
-    (onboarding.uploaded ? 1 : 0) +
-    (onboarding.generated ? 1 : 0) +
-    (onboarding.picked ? 1 : 0);
+    (stats.total > 0 ? 1 : 0) +
+    (generated ? 1 : 0) +
+    (todayOutfit ? 1 : 0);
 
   const progress = Math.round((completed / 3) * 100);
 
@@ -106,15 +107,17 @@ export default function DashboardPage() {
         Welcome back {user?.displayName || "Stylist"} 👋
       </p>
 
-      <div className="rounded-xl border p-6 mt-6">
-        <h3>Getting Started</h3>
-        <div>{progress}%</div>
+      <div className="border rounded-xl p-6 mt-6">
+        Progress: {progress}%
       </div>
 
-      <div className="rounded-xl border p-6 mt-6">
+      <div className="border rounded-xl p-6 mt-6">
         <h3>{aiInsight}</h3>
 
-        <Link href="/next-dress" className="inline-flex items-center gap-2 mt-4 bg-white text-black px-6 py-3 font-bold">
+        <Link
+          href="/next-dress"
+          className="inline-flex items-center gap-2 mt-4 bg-white text-black px-6 py-3 font-bold"
+        >
           Generate Outfit <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
