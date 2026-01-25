@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { onAuthStateChanged, signOut, User } from "firebase/auth";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import BottomNav from "../components/BottomNav";
 import { ArrowRight, LogOut } from "lucide-react";
@@ -23,45 +23,43 @@ type TodayOutfitPayload = {
   mood: string;
 };
 
-/* ---------------- Page ---------------- */
+/* ---------------- Safe browser helpers ---------------- */
+
+const safeGet = (key: string) =>
+  typeof window === "undefined" ? null : localStorage.getItem(key);
+
+const safeParse = <T,>(v: string | null, fallback: T): T => {
+  try {
+    return v ? JSON.parse(v) : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 export default function DashboardPage() {
   const router = useRouter();
 
-  const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>([]);
   const [todayOutfit, setTodayOutfit] =
     useState<TodayOutfitPayload | null>(null);
 
-  // ✅ block server render
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  /* CLIENT ONLY */
 
-  // ✅ auth + localStorage ONLY after mount
   useEffect(() => {
-    if (!mounted) return;
+    if (typeof window === "undefined") return;
 
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return router.push("/auth");
 
       setUser(u);
 
-      try {
-        setWardrobe(JSON.parse(localStorage.getItem("wardrobe_items") || "[]"));
-        setTodayOutfit(
-          JSON.parse(localStorage.getItem("today_outfit") || "null")
-        );
-      } catch {}
+      setWardrobe(safeParse(safeGet("wardrobe_items"), []));
+      setTodayOutfit(safeParse(safeGet("today_outfit"), null));
     });
 
     return () => unsub();
-  }, [mounted, router]);
-
-  if (!mounted) return null;
-
-  /* ---------------- Stats ---------------- */
+  }, [router]);
 
   const stats = useMemo(() => {
     return {
@@ -72,9 +70,9 @@ export default function DashboardPage() {
 
   const onboarding = {
     uploaded: stats.total > 0,
-    generated:
-      typeof window !== "undefined" &&
-      !!localStorage.getItem("outfit_history"),
+    generated: typeof window !== "undefined"
+      ? !!localStorage.getItem("outfit_history")
+      : false,
     picked: !!todayOutfit,
   };
 
@@ -113,23 +111,13 @@ export default function DashboardPage() {
         Welcome back {user?.displayName || "Stylist"} 👋
       </p>
 
-      <div className="rounded-[26px] border border-white/10 bg-white/5 p-6 mt-6">
-        <div className="flex justify-between mb-2">
-          <span>Progress</span>
-          <span>{progress}%</span>
-        </div>
-
-        <div className="h-2 bg-black/40 rounded-full overflow-hidden">
-          <div className="h-full bg-white" style={{ width: `${progress}%` }} />
-        </div>
-      </div>
-
-      <div className="rounded-[26px] border border-white/10 bg-white/5 p-6 mt-6">
-        <h3 className="text-xl font-bold">{aiInsight}</h3>
+      <div className="rounded-xl border p-6 mt-6">
+        <p>Progress: {progress}%</p>
+        <p>{aiInsight}</p>
 
         <Link
           href="/next-dress"
-          className="inline-flex items-center gap-2 mt-4 rounded-full bg-white text-black px-6 py-3 font-bold"
+          className="inline-flex items-center gap-2 mt-4 bg-white text-black px-6 py-3 rounded-full"
         >
           Generate Outfit <ArrowRight className="w-4 h-4" />
         </Link>
