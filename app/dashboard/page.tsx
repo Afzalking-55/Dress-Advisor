@@ -10,6 +10,8 @@ import { auth } from "../lib/firebase";
 import BottomNav from "../components/BottomNav";
 import { ArrowRight, LogOut } from "lucide-react";
 
+/* ---------------- Types ---------------- */
+
 type WardrobeItem = {
   id: string;
   category: "Top" | "Bottom" | "Shoes" | "Other";
@@ -21,6 +23,8 @@ type TodayOutfitPayload = {
   mood: string;
 };
 
+/* ---------------- Page ---------------- */
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -30,41 +34,34 @@ export default function DashboardPage() {
   const [todayOutfit, setTodayOutfit] =
     useState<TodayOutfitPayload | null>(null);
 
-  const [generated, setGenerated] = useState(false);
-
-  // ✅ HARD CLIENT GATE
+  // ✅ block server render
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // ✅ auth + localStorage ONLY after mount
   useEffect(() => {
     if (!mounted) return;
 
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return router.push("/auth");
 
-      if (localStorage.getItem("setup_done") !== "1") {
-        router.push("/setup");
-        return;
-      }
-
       setUser(u);
 
       try {
         setWardrobe(JSON.parse(localStorage.getItem("wardrobe_items") || "[]"));
-        setTodayOutfit(JSON.parse(localStorage.getItem("today_outfit") || "null"));
-        setGenerated(!!localStorage.getItem("outfit_history"));
-      } catch {
-        setWardrobe([]);
-        setTodayOutfit(null);
-        setGenerated(false);
-      }
+        setTodayOutfit(
+          JSON.parse(localStorage.getItem("today_outfit") || "null")
+        );
+      } catch {}
     });
 
     return () => unsub();
   }, [mounted, router]);
 
   if (!mounted) return null;
+
+  /* ---------------- Stats ---------------- */
 
   const stats = useMemo(() => {
     return {
@@ -73,10 +70,18 @@ export default function DashboardPage() {
     };
   }, [wardrobe]);
 
+  const onboarding = {
+    uploaded: stats.total > 0,
+    generated:
+      typeof window !== "undefined" &&
+      !!localStorage.getItem("outfit_history"),
+    picked: !!todayOutfit,
+  };
+
   const completed =
-    (stats.total > 0 ? 1 : 0) +
-    (generated ? 1 : 0) +
-    (todayOutfit ? 1 : 0);
+    (onboarding.uploaded ? 1 : 0) +
+    (onboarding.generated ? 1 : 0) +
+    (onboarding.picked ? 1 : 0);
 
   const progress = Math.round((completed / 3) * 100);
 
@@ -89,7 +94,6 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen text-white px-6 pt-10 pb-40 max-w-6xl mx-auto">
-
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-extrabold">Dress Advisor ✨</h1>
 
@@ -98,7 +102,7 @@ export default function DashboardPage() {
             await signOut(auth);
             router.push("/");
           }}
-          className="flex items-center gap-2 border px-4 py-2 rounded-full text-sm"
+          className="flex items-center gap-2 border border-white/10 px-4 py-2 rounded-full text-sm"
         >
           <LogOut className="w-4 h-4" />
           Logout
@@ -109,16 +113,23 @@ export default function DashboardPage() {
         Welcome back {user?.displayName || "Stylist"} 👋
       </p>
 
-      <div className="border rounded-xl p-6 mt-6">
-        Progress: {progress}%
+      <div className="rounded-[26px] border border-white/10 bg-white/5 p-6 mt-6">
+        <div className="flex justify-between mb-2">
+          <span>Progress</span>
+          <span>{progress}%</span>
+        </div>
+
+        <div className="h-2 bg-black/40 rounded-full overflow-hidden">
+          <div className="h-full bg-white" style={{ width: `${progress}%` }} />
+        </div>
       </div>
 
-      <div className="border rounded-xl p-6 mt-6">
-        <h3>{aiInsight}</h3>
+      <div className="rounded-[26px] border border-white/10 bg-white/5 p-6 mt-6">
+        <h3 className="text-xl font-bold">{aiInsight}</h3>
 
         <Link
           href="/next-dress"
-          className="inline-flex items-center gap-2 mt-4 bg-white text-black px-6 py-3 font-bold"
+          className="inline-flex items-center gap-2 mt-4 rounded-full bg-white text-black px-6 py-3 font-bold"
         >
           Generate Outfit <ArrowRight className="w-4 h-4" />
         </Link>
