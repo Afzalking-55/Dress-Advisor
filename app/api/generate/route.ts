@@ -21,7 +21,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Load wardrobe
     const ref = collection(db, "users", uid, "wardrobe");
     const snap = await getDocs(ref);
 
@@ -32,12 +31,11 @@ export async function POST(req: Request) {
 
     if (!wardrobe.length) {
       return NextResponse.json(
-        { error: "No wardrobe items found" },
+        { error: "No wardrobe items found." },
         { status: 400 }
       );
     }
 
-    // Generate outfits
     const generated = generateTopOutfits({
       occasion,
       wardrobe: wardrobe as any,
@@ -45,7 +43,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      occasion, // ✅ JUST RETURN INPUT OCCASION
+
+      // ✅ REMOVE occasionProfile completely
+      occasion,
+
       outfits: generated.outfits.map((o) => ({
         styleMode: o.styleMode,
         score: o.score,
@@ -53,20 +54,18 @@ export async function POST(req: Request) {
         warnings: o.warnings,
         breakdown: o.breakdown,
         items: {
-          top: o.pick.top?.id || null,
-          bottom: o.pick.bottom?.id || null,
-          shoes: o.pick.shoes?.id || null,
-          outer: o.pick.outer?.id || null,
-          accessory: o.pick.accessory?.id || null,
+          top: o.pick.top?.id ?? null,
+          bottom: o.pick.bottom?.id ?? null,
+          shoes: o.pick.shoes?.id ?? null,
+          outer: o.pick.outer?.id ?? null,
+          accessory: o.pick.accessory?.id ?? null,
         },
       })),
     });
-
   } catch (err: any) {
-    console.error("OUTFITS GENERATE ERROR:", err);
-
+    console.error(err);
     return NextResponse.json(
-      { error: "Outfit generation failed", details: err?.message || String(err) },
+      { error: "Outfit generation failed" },
       { status: 500 }
     );
   }
