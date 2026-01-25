@@ -61,12 +61,19 @@ function Glass({ children }: { children: ReactNode }) {
 
 export default function DashboardPage() {
   const router = useRouter();
+
+  const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [wardrobe, setWardrobe] = useState<WardrobeItem[]>([]);
   const [todayOutfit, setTodayOutfit] =
     useState<TodayOutfitPayload | null>(null);
 
-  const [hasGenerated, setHasGenerated] = useState(false);
+  // ✅ Prevent SSR / hydration crash
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
@@ -77,7 +84,6 @@ export default function DashboardPage() {
 
       setWardrobe(safeParse(safeGet("wardrobe_items", "[]"), []));
       setTodayOutfit(safeParse(safeGet("today_outfit", "null"), null));
-      setHasGenerated(!!safeGet("outfit_history", ""));
     });
 
     return () => unsub();
@@ -96,7 +102,9 @@ export default function DashboardPage() {
 
   const onboarding = {
     uploaded: stats.total > 0,
-    generated: hasGenerated,
+    generated:
+      typeof window !== "undefined" &&
+      !!localStorage.getItem("outfit_history"),
     picked: !!todayOutfit,
   };
 
@@ -118,7 +126,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen text-white px-6 pt-10 pb-40 max-w-6xl mx-auto">
-
+      {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-extrabold">Dress Advisor ✨</h1>
 
@@ -134,10 +142,12 @@ export default function DashboardPage() {
         </button>
       </div>
 
+      {/* Welcome */}
       <p className="text-white/60 mt-2">
         Welcome back {user?.displayName || "Stylist"} 👋
       </p>
 
+      {/* Progress */}
       <Glass>
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-extrabold">Getting Started</h3>
@@ -155,6 +165,7 @@ export default function DashboardPage() {
         </div>
       </Glass>
 
+      {/* AI Insight */}
       <Glass>
         <p className="text-xs uppercase text-white/50">AI Insight</p>
         <h3 className="text-xl font-extrabold mt-2">{aiInsight}</h3>
