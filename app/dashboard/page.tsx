@@ -24,6 +24,7 @@ type TodayOutfitPayload = {
 /* ---------------- Helpers ---------------- */
 
 function safeGet(key: string, fallback: string) {
+  if (typeof window === "undefined") return fallback;
   try {
     return localStorage.getItem(key) ?? fallback;
   } catch {
@@ -40,6 +41,7 @@ function safeParse<T>(value: string, fallback: T): T {
 }
 
 function hasSetupDone() {
+  if (typeof window === "undefined") return false;
   try {
     return localStorage.getItem("setup_done") === "1";
   } catch {
@@ -64,6 +66,8 @@ export default function DashboardPage() {
   const [todayOutfit, setTodayOutfit] =
     useState<TodayOutfitPayload | null>(null);
 
+  const [hasGenerated, setHasGenerated] = useState(false);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       if (!u) return router.push("/auth");
@@ -73,6 +77,7 @@ export default function DashboardPage() {
 
       setWardrobe(safeParse(safeGet("wardrobe_items", "[]"), []));
       setTodayOutfit(safeParse(safeGet("today_outfit", "null"), null));
+      setHasGenerated(!!safeGet("outfit_history", ""));
     });
 
     return () => unsub();
@@ -87,11 +92,11 @@ export default function DashboardPage() {
     };
   }, [wardrobe]);
 
-  /* ---------------- REAL CHECKLIST ---------------- */
+  /* ---------------- Checklist ---------------- */
 
   const onboarding = {
     uploaded: stats.total > 0,
-    generated: !!localStorage.getItem("outfit_history"),
+    generated: hasGenerated,
     picked: !!todayOutfit,
   };
 
@@ -114,7 +119,6 @@ export default function DashboardPage() {
   return (
     <main className="min-h-screen text-white px-6 pt-10 pb-40 max-w-6xl mx-auto">
 
-      {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-4xl font-extrabold">Dress Advisor ✨</h1>
 
@@ -130,12 +134,10 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* Welcome */}
       <p className="text-white/60 mt-2">
         Welcome back {user?.displayName || "Stylist"} 👋
       </p>
 
-      {/* Progress Card */}
       <Glass>
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-extrabold">Getting Started</h3>
@@ -153,7 +155,6 @@ export default function DashboardPage() {
         </div>
       </Glass>
 
-      {/* AI Insight */}
       <Glass>
         <p className="text-xs uppercase text-white/50">AI Insight</p>
         <h3 className="text-xl font-extrabold mt-2">{aiInsight}</h3>
