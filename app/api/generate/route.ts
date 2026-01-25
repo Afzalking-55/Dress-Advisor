@@ -21,7 +21,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Read wardrobe items
+    // Load wardrobe
     const ref = collection(db, "users", uid, "wardrobe");
     const snap = await getDocs(ref);
 
@@ -32,12 +32,12 @@ export async function POST(req: Request) {
 
     if (!wardrobe.length) {
       return NextResponse.json(
-        { error: "No wardrobe items found. Upload items first." },
+        { error: "No wardrobe items found" },
         { status: 400 }
       );
     }
 
-    // ✅ Generate top outfits
+    // Generate outfits
     const generated = generateTopOutfits({
       occasion,
       wardrobe: wardrobe as any,
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ok: true,
-      occasion: generated.occasionProfile,
+      occasion, // ✅ JUST RETURN INPUT OCCASION
       outfits: generated.outfits.map((o) => ({
         styleMode: o.styleMode,
         score: o.score,
@@ -61,8 +61,10 @@ export async function POST(req: Request) {
         },
       })),
     });
+
   } catch (err: any) {
     console.error("OUTFITS GENERATE ERROR:", err);
+
     return NextResponse.json(
       { error: "Outfit generation failed", details: err?.message || String(err) },
       { status: 500 }
